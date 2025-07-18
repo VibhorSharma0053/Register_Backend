@@ -74,21 +74,36 @@ async def download_employee_pdf(employee_id: str):
 
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
+    # pdf.add_font('DejaVu', '', 'fonts/DejaVuSans.ttf', uni=True)
+    
+    # Register a Unicode-capable font (DejaVuSans.ttf should be in your project folder)
+    # font_path = "DejaVuSans.ttf"  # download if not present
+    # pdf.add_font("DejaVu", "", font_path, uni=True)
+    pdf.set_font("Arial", "", 12)
 
     pdf.cell(200, 10, txt=f"Work Summary - {name}", ln=1, align='C')
     pdf.ln(5)
 
     for i, e in enumerate(entries, 1):
-        amount = e['rate_per_unit'] * e['no_of_units']
-        pdf.multi_cell(0, 8, txt=f"{i}. Date: {e['date']}\n   Work: {e['work']}\n   Rate: ₹{e['rate_per_unit']}/unit | Units: {e['no_of_units']}\n   Amount: ₹{amount} | Deposited/Due: ₹{e.get('deposit_or_due', 0.0)}\n", border=0)
+        rate = e.get("rate_per_unit", 0)
+        units = e.get("no_of_units", 0)
+        amount = rate * units
+        deposited = e.get("deposit_or_due", 0)
+
+        entry_text = (
+            f"{i}. Date: {e.get('date')}\n"
+            f"   Work: {e.get('work')}\n"
+            f"   Rate: Rs. {rate}/unit | Units: {units}\n"
+            f"   Amount: Rs. {amount} | Deposited/Due: Rs.{deposited}\n"
+        )
+        pdf.multi_cell(0, 8, txt=entry_text)
         pdf.ln(2)
 
-    pdf.set_font("Arial", 'B', size=12)
-    pdf.cell(0, 10, txt=f"Total Earned: ₹{total_earned:.2f}", ln=1)
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(0, 10, txt=f"Total Earned: Rs.{total_earned:.2f}", ln=1)
 
-    file_path = f"temp/{employee_id}_summary.pdf"
     os.makedirs("temp", exist_ok=True)
+    file_path = f"temp/{employee_id}_summary.pdf"
     pdf.output(file_path)
 
     return FileResponse(file_path, filename=f"{name}_summary.pdf")
